@@ -79,11 +79,11 @@ async def hello(ctx):
 async def test(ctx):
     await ctx.send("OmniBot is working correctly.")
 
-# Here will be meme from reddit
+# Fetches a meme from Reddit using the PRAW API and sends it to the channel
 @bot.command()
 async def meme(ctx):
     post = get_random_post("MemesESP")
-    await ctx.send(f"🧠 **{post.title}**\n{post.url}")
+    await ctx.send(f"**{post.title}**\n{post.url}")
 
 # Command to display bot information
 @bot.command()
