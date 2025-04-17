@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+import praw
 import random
 import os
 from dotenv import load_dotenv
@@ -7,6 +8,18 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
+
+reddit = praw.Reddit(
+    client_id = os.getenv("REDDIT_CLIENT_ID"),
+    client_secret = os.getenv("REDDIT_CLIENT_SECRET"),
+    user_agent = os.getenv("REDDIT_USER_AGENT")
+)
+    
+def get_random_post(subreddit_name):
+    subreddit = reddit.subreddit(subreddit_name)
+    posts = list(subreddit.hot(limit=50))
+    filtered = filter(lambda p: not p.stickied and not p.over18, posts)
+    return random.choice(list(filtered))
 
 # Verify that the token was loaded correctly
 if not TOKEN:
@@ -18,7 +31,7 @@ intents.members = True  # Required to detect new members
 intents.message_content = True  # Allows the bot to read message content
 
 # Create bot instance
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="$", intents=intents)
 
 # Dictionary to store user XP and level data
 # Uses user ID (converted to string) as the key
@@ -28,6 +41,17 @@ user_data = {}
 XP_MIN = 5            # Minimum XP granted per message
 XP_MAX = 15           # Maximum XP granted per message
 XP_THRESHOLD = 100    # XP required per level (adjustable scale)
+
+
+# Reddit API connection check
+def reddit_connection_check():
+    try:
+        reddit.subreddit("MemesESP").title 
+        print("✅ Successfully connected to the Reddit API.")
+    except Exception as e:
+        print("❌ Failed to connect to Reddit API:", e)
+
+reddit_connection_check()
 
 # Event triggered when the bot is ready
 @bot.event
@@ -39,7 +63,7 @@ async def on_ready():
 @bot.event
 async def on_member_join(member):
     # Set up the welcome channel
-    channel_id = 1344090392139665482
+    channel_id = 1343767017043525666    # Here you have to put the id of the channel where you want to send the welcome message
     channel = bot.get_channel(channel_id)
 
     if channel:
@@ -54,7 +78,13 @@ async def hello(ctx):
 @bot.command()
 async def test(ctx):
     await ctx.send("OmniBot is working correctly.")
-    
+
+# Here will be meme from reddit
+@bot.command()
+async def meme(ctx):
+    post = get_random_post("MemesESP")
+    await ctx.send(f"🧠 **{post.title}**\n{post.url}")
+
 # Command to display bot information
 @bot.command()
 async def info(ctx):
@@ -67,7 +97,7 @@ async def info(ctx):
     embed.add_field(
         name="📌 Current Features",
         value="- Personalized welcome messages.\n"
-              "- Interactive commands like `!hello`, `!info`, `!level`, and `!test`.\n"
+              "- Interactive commands like `$hello`, `$info`, `$level`, $meme and `$test`.\n"
               "- XP and Leveling system.",
         inline=False
     )
@@ -84,7 +114,7 @@ async def info(ctx):
         name="👨‍💻 Developer",
         value="Alfonso González\n"
               "Systems Engineering Student\n"
-              "Passionate about AI with Python and Web Development.",
+              "Passionate about Data Science.",
         inline=False
     )
 
@@ -94,7 +124,7 @@ async def info(ctx):
 # Event to process messages for XP and leveling system
 @bot.event
 async def on_message(message):
-    # Ignore messages from other bots to prevent loops
+    # Ignore messages from other bots 
     if message.author.bot:
         return
 
